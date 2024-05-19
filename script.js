@@ -18,6 +18,12 @@ const board = document.querySelector('#board')
 
 let circleTurn
 
+let state = [
+    '', '', '',
+    '', '', '',
+    '', '', ''
+  ];
+
 startGame()
 
 restartButton.addEventListener('click', startGame)
@@ -47,10 +53,14 @@ function handleClick(e) {
     }
 }
 
+function checkWin(currentClass) {
+    return WINNING_COMBINATIONS.some(condition => 
+        condition.every(index => state[index] === currentClass))
+}
+
 function isDraw() {
-    return [...cellElements].every(cell => {
-        return cell.classList.contains(X_CLASS) ||
-        cell.classList.contains(CIRCLE_CLASS)
+    return state.every(cell => {
+        return cell != ''
     })
 }
 
@@ -65,6 +75,7 @@ function endGame(draw) {
 
 function placeMark(cell, currentClass) {
     cell.classList.add(currentClass)
+    state[cell.getAttribute('data-cell') - 1] = currentClass
 }
 
 function swapTurns() {
@@ -79,12 +90,34 @@ function setBoardHoverClass() {
 
 }
 
-function checkWin(currentClass) {
-    return WINNING_COMBINATIONS.some(combination => {
-        // TRUE as long as one combination is satisfied
-        return combination.every(index => {
-            // TRUE if every cell elemnt in combination indices is the same current class
-            return cellElements[index].classList.contains(currentClass)
-        })
-    })
+// get empty boxes
+function getAvailableCells() {
+    return state.map((cell, index) => cell == '' ? index : null) 
+}
+
+function minimax(player) {
+    // return best move
+
+    const availableCells = getAvailableCells()
+
+
+    // terminal state
+    if (checkWin(player)) {
+        return -1;
+    } else if (isDraw()) {
+        return 0;
+    } else if (checkWin(player == CIRCLE_CLASS ? X_CLASS : CIRCLE_CLASS)) {
+        return 1;
+    }
+
+    let moves = [];
+
+    for (let i = 0; i < availableCells.length; i++) {
+        let move 
+    }
+
+
+
+
+
 }
