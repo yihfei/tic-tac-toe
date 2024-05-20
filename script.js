@@ -1,5 +1,10 @@
 const X_CLASS = 'x'
 const CIRCLE_CLASS = 'circle'
+
+let ai = X_CLASS
+
+
+
 const WINNING_COMBINATIONS = [
     [0, 1, 2],
     [3, 4, 5],
@@ -36,16 +41,40 @@ function startGame() {
         cell.removeEventListener('click', handleClick)
         cell.addEventListener('click', handleClick, { once: true })
     })
+    state = [
+        '', '', '',
+        '', '', '',
+        '', '', ''
+      ];
     winningMessageElement.classList.remove('show')
+    aiMove()
 }
 
 function handleClick(e) {
     const cell = e.target
     const currentClass = circleTurn ? CIRCLE_CLASS: X_CLASS
     placeMark(cell, currentClass)
-    if (checkWin(currentClass)) {
+    if (checkWin(state, currentClass)) {
         endGame(false)
-    } else if (isDraw()) {
+    } else if (isDraw(state)) {
+        endGame(true)
+    } else {
+        swapTurns()
+        setBoardHoverClass()
+        aiMove()
+    }
+}
+
+function aiMove() {
+    const move = minimax(state, ai)
+    const index = move.index
+    const cell = getCellElementByIndex(index)
+    const currentClass = circleTurn ? CIRCLE_CLASS: X_CLASS
+    placeMark(cell, currentClass)
+    cell.removeEventListener('click', handleClick)
+    if (checkWin(state, currentClass)) {
+        endGame(false)
+    } else if (isDraw(state)) {
         endGame(true)
     } else {
         swapTurns()
@@ -53,12 +82,12 @@ function handleClick(e) {
     }
 }
 
-function checkWin(currentClass) {
+function checkWin(state, currentClass) {
     return WINNING_COMBINATIONS.some(condition => 
         condition.every(index => state[index] === currentClass))
 }
 
-function isDraw() {
+function isDraw(state) {
     return state.every(cell => {
         return cell != ''
     })
@@ -71,6 +100,10 @@ function endGame(draw) {
         winningMessageTextElement.innerText = `${circleTurn ? "O" : "X"} Wins!`
     }
     winningMessageElement.classList.add('show')
+}
+
+function getCellElementByIndex(index) {
+    return document.querySelector(`[data-cell="${index + 1}"]`);
 }
 
 function placeMark(cell, currentClass) {
@@ -91,33 +124,69 @@ function setBoardHoverClass() {
 }
 
 // get empty boxes
-function getAvailableCells() {
-    return state.map((cell, index) => cell == '' ? index : null) 
+function getAvailableCells(curState) {
+    return curState.map((cell, index) => cell == '' ? index : null)
+        .filter(index => index !== null) // remove so the length reflects number of avail cells
 }
 
-function minimax(player) {
-    // return best move
+function minimax(state, player) {
+    let availableCells = getAvailableCells(state);
 
-    const availableCells = getAvailableCells()
-
-
-    // terminal state
-    if (checkWin(player)) {
-        return -1;
-    } else if (isDraw()) {
-        return 0;
-    } else if (checkWin(player == CIRCLE_CLASS ? X_CLASS : CIRCLE_CLASS)) {
-        return 1;
+    // Terminal states
+    if (checkWin(state, X_CLASS)) {
+        return { score: 10 };
+    } else if (checkWin(state, CIRCLE_CLASS)) {
+        return { score: -10 };
+    } else if (isDraw(state)) {
+        return { score: 0 };
     }
 
+    // Moves array
     let moves = [];
 
-    for (let i = 0; i < availableCells.length; i++) {
-        let move 
+    // Iterate over available cells to simulate each move
+    for (let cell of availableCells) {
+        let move = {};
+        move.index = cell;
+        
+        // Apply the move
+        state[cell] = player;
+
+        // Recursively call minimax for the next player
+        if (player == X_CLASS) {
+            let result = minimax(state, CIRCLE_CLASS);
+            move.score = result.score;
+        } else {
+            let result = minimax(state, X_CLASS);
+            move.score = result.score;
+        }
+
+        // Revert the move
+        state[cell] = '';
+
+        // Save the move
+        moves.push(move);
     }
 
+    // Choose the best move
+    let bestMove;
+    if (player == X_CLASS) {
+        let bestScore = -Infinity;
+        for (let move of moves) {
+            if (move.score > bestScore) {
+                bestScore = move.score;
+                bestMove = move;
+            }
+        }
+    } else {
+        let bestScore = Infinity;
+        for (let move of moves) {
+            if (move.score < bestScore) {
+                bestScore = move.score;
+                bestMove = move;
+            }
+        }
+    }
 
-
-
-
+    return bestMove;
 }
